@@ -6,9 +6,7 @@
         <string>com.simple.agent</string>
         <key>ProgramArguments</key>
         <array>
-            <string>/Library/Application Support/operator-payload</string>
-            <string>-name</string>
-            <string>TECHNIQUE_NAME</string>
+            <string>/Library/Application Support/PAYLOAD_NAME</string>
         </array>
         <key>KeepAlive</key>
         <true/>

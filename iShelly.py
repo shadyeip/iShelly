@@ -1,10 +1,6 @@
 #!/usr/bin/python3
 import sys
-import os
-from pick import pick
 from src.modules import modules, common
-import json
-
 
 def main():
     global logger
@@ -16,43 +12,28 @@ def main():
     if not common.prereqs_present():
         sys.exit()
 
-    os.makedirs("./Payloads/", exist_ok=True)
-    all_options = common.get_options()
-
-    logger.debug("Generating: {}".format(all_options['procedure']))
-    c2 = common.C2(all_options)
-    agent = common.Agent(c2, all_options)
-
-    c2.get_payload()
-    if all_options['needs-compilation']:
-        c2.extract_zip()
-        agent.build_operator_agent_config()
-        agent.save_c2_profile_settings()
-        agent.build_agent(all_options)
-    agent.upload_payload()
-
-    module = common.ModuleGenerator(agent)
-    if all_options['procedure'] == 'Installer Package w/ only preinstall script':
+    module = common.ModulePreprocessor(args, logger)
+    if args.t == 'installer-w-preinstall-script':
         modules.install_pkg(module)
-    elif all_options['procedure'] == 'Installer Package w/ only postinstall script':
+    elif args.t == 'installer-w-postinstall-script':
         modules.install_pkg_postinstall(module)       
-    elif all_options['procedure'] == 'Installer Package w/ Launch Daemon for Persistence':
+    elif args.t == 'installer-w-ld':
         modules.install_pkg_ld(module)
-    elif all_options['procedure'] == 'Installer Package w/ Installer Plugin':
+    elif args.t == 'installer-plugin':
         modules.install_pkg_installer_plugin(module)
-    elif all_options['procedure'] == 'Installer Package w/ JavaScript Functionality embedded':
+    elif args.t == 'installer-js-embedded':
         modules.install_pkg_js_embedded(module)
-    elif all_options['procedure'] == 'Installer Package w/ JavaScript Functionality in Script':
+    elif args.t == 'installer-js-script':
         modules.install_pkg_js_script(module)
-    elif all_options['procedure'] == 'Disk Image':
+    elif args.t == 'disk-image':
         modules.disk_image(module)
-    elif all_options['procedure'] == 'Macro VBA Excel':
+    elif args.t == 'macro-vba-excel':
         modules.macro_vba_excel(module)
-    elif all_options['procedure'] == 'Macro VBA PowerPoint':
+    elif args.t == 'macro-vba-ppt':
         modules.macro_vba_ppt(module)
-    elif all_options['procedure'] == 'Macro VBA Word':
+    elif args.t == 'macro-vba-word':
         modules.macro_vba_word(module)
-    elif all_options['procedure'] == 'Macro SYLK Excel':
+    elif args.t == 'macro-sylk-excel':
         modules.macro_sylk_excel(module)
 
     print(

